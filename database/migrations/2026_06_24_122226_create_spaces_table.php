@@ -16,13 +16,14 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->string('title');
             $table->text('description');
-            $table->string('type');
+            // $table->string('type');
             $table->integer('capacity');
             $table->decimal('price_per_hour', 8, 2);
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(true)->index();
             $table->string('image')->nullable();
-            $table->text('features')->nullable();
+            $table->json('features')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

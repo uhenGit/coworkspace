@@ -21,6 +21,7 @@ return new class extends Migration
             $table->decimal('total_price', 10, 2);
             $table->text('notes')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             // indexes
             $table->index(['space_id', 'start_time', 'end_time']);

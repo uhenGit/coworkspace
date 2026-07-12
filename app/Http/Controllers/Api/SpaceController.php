@@ -14,6 +14,7 @@ class SpaceController extends Controller
     public function index()
     {
         $spaces = Space::with('category')->where('is_active', true)->get();
+
         return response()->json($spaces);
     }
 
@@ -31,6 +32,7 @@ class SpaceController extends Controller
     public function show(Space $space)
     {
         $space->load('category');
+
         return response()->json($space);
     }
 

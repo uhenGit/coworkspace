@@ -3,11 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Category extends Model
 {
-    public function spaces()
+    use SoftDeletes;
+
+    public function spaces(): HasMany
     {
-      return $this->hasMany(Space::class);
+        return $this->hasMany(Space::class);
     }
 }
