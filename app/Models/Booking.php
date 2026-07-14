@@ -19,4 +19,13 @@ class Booking extends Model
     {
         return $this->belongsTo(Space::class);
     }
+
+    protected function casts(): array
+    {
+        return [
+            'start_time' => 'datetime',
+            'end_time' => 'datetime',
+            'total_price' => 'decimal:2',
+        ];
+    }
 }
