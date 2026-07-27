@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('space_id')->constrained()->onDelete('cascade');
             $table->dateTime('start_time');
             $table->dateTime('end_time');
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+            $table->string('status', 20)->default('pending');
             $table->decimal('total_price', 10, 2);
             $table->text('notes')->nullable();
             $table->timestamps();
