@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->string('short_code')->unique();
             $table->text('description')->nullable();
+            $table->unsignedSmallInteger('booking_buffer_minutes')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
