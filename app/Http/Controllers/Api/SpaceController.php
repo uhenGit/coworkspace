@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Space;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SpaceController extends Controller
 {
@@ -31,9 +33,10 @@ class SpaceController extends Controller
      */
     public function show(Space $space)
     {
-        $space->load('category');
-
         return response()->json($space);
+        /* $space->load('category');
+
+        return response()->json($space); */
     }
 
     /**
@@ -50,5 +53,50 @@ class SpaceController extends Controller
     public function destroy(Space $space)
     {
         //
+    }
+
+    public function test(Request $request)
+    {
+        $start = microtime(true);
+        $spaces = Space::with('category')
+            ->get()
+            ->groupBy('categoty.name')
+            ->keys();
+        $end = microtime(true);
+        Log::info('time');
+        $time = ($end - $start) * 1000;
+        Log::info($time);
+
+        return [];
+        /* return Space::with('category')
+            ->get()
+            ->groupBy('category.name')
+            ->map(fn (Collection $group) =>
+                $group->map(fn ($space) => [
+                    'title' => $space->title,
+                    'Price_per_hour' => $space->price_per_hour,
+                ]),
+            )
+            ->pipe(fn ($spaces) => response()->json($spaces)); */
+        /* $spaces = Space::with('category')
+            ->get()
+            ->groupBy('category.name');
+            // ->keys();
+        Log::info('request');
+        $sorts = [
+            'name' => 'title',
+            'price' => 'price_per_hour',
+            // '' => null, // do not do it like this
+        ];
+        $sort = $sorts[$request->sort] ?? null;
+
+        Log::info($sort); */
+        /* $spaces = Space::query()
+            ->when(
+                isset($sort),
+                fn ($query) => $query->orderBy($sort))
+            ->get(); */
+
+        // return response()->json($spaces);
     }
 }

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\BookingStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     public function user(): BelongsTo
     {
@@ -26,6 +28,7 @@ class Booking extends Model
             'start_time' => 'datetime',
             'end_time' => 'datetime',
             'total_price' => 'decimal:2',
+            'status' => BookingStatus::class,
         ];
     }
 }

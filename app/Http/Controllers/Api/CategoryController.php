@@ -29,7 +29,7 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        //
+        return response()->json($category);
     }
 
     /**
@@ -46,5 +46,14 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         //
+    }
+
+    public function test()
+    {
+        $categories = Category::pluck('name', 'id')->flip();
+        // ->get();
+        // $categories = Category::pluck('name');
+
+        return response()->json($categories);
     }
 }

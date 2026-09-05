@@ -10,8 +10,17 @@ class Category extends Model
 {
     use SoftDeletes;
 
+    protected $fillable = [
+        'booking_buffer_minutes',
+    ];
+
     public function spaces(): HasMany
     {
         return $this->hasMany(Space::class);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'short_code';
     }
 }
