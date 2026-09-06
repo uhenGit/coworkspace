@@ -9,6 +9,6 @@ readonly class BookingPriceCalculator
 {
     public function calculate(Space $space, Carbon $start, Carbon $end): float
     {
-        return $start->diffInFloatHours($end) * (float) $space->price_per_hour;
+        return $start->floatDiffInHours($end) * (float) $space->price_per_hour;
     }
 }

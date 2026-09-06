@@ -2,12 +2,14 @@
 
 namespace App\Data;
 
+use Carbon\Carbon;
+
 readonly class ReserveBookingData
 {
     public function __construct(
         public int $space_id,
-        public string $start_date,
-        public string $end_date,
+        public Carbon $start_time,
+        public Carbon $end_time,
         public ?string $notes,
     ) {}
 

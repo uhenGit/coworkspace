@@ -31,4 +31,14 @@ class Booking extends Model
             'status' => BookingStatus::class,
         ];
     }
+
+    protected $fillable = [
+        'user_id',
+        'start_time',
+        'end_time',
+        'status',
+        'notes',
+        'total_price',
+        'space_id',
+    ];
 }
