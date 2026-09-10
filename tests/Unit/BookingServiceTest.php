@@ -59,6 +59,15 @@ class BookingServiceTest extends TestCase
 
         // Assert
         $this->expectException(BookingTimeConflictException::class);
+        // Check for the missing record with defined fields
+        $this->assertDatabaseMissing('bookings', [
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'notes' => 'test',
+        ]);
+        // Check by quantity (should be only one record in the test DB)
+        $this->assertDatabaseCount('bookings', 1);
 
         // Act
         $service->reserve($user, $data);
@@ -88,10 +97,10 @@ class BookingServiceTest extends TestCase
         $this->AssertInstanceOf(Booking::class, $booking);
         $this->assertDatabaseHas('bookings', [
             'id' => $booking->id,
-            'user_id' => $booking->user_id,
-            'space_id' => $booking->space_id,
-            'start_time' => $booking->start_time,
-            'end_time' => $booking->end_time,
+            'user_id' => $user->id,
+            'space_id' => $space->id,
+            'start_time' => $start,
+            'end_time' => $end,
             'notes' => 'success test',
             'status' => BookingStatus::Pending,
             'total_price' => $booking->total_price,
