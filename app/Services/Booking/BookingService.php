@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Space;
 use App\Models\User;
 use App\Exceptions\Booking\BookingTimeConflictException;
+use App\Services\Invoice\InvoiceService;
 use Illuminate\Support\Facades\DB;
 
 readonly class BookingService
@@ -15,6 +16,7 @@ readonly class BookingService
     public function __construct(
         private AvailabilityService $availabilityService,
         private BookingPriceCalculator $priceCalculator,
+        private InvoiceService $invoiceService,
     ) {}
 
     public function reserve(User $user, ReserveBookingData $data): Booking
@@ -29,7 +31,7 @@ readonly class BookingService
 
             $total_price = $this->priceCalculator->calculate($space, $data->start_time, $data->end_time);
 
-            return Booking::create([
+            $booking = Booking::create([
                 'user_id' => $user->id,
                 'space_id' => $data->space_id,
                 'start_time' => $data->start_time,
@@ -38,12 +40,18 @@ readonly class BookingService
                 'notes' => $data->notes,
                 'total_price' => $total_price,
             ]);
+
+            // If invoice creation fails, the whole transaction is rolled back
+            $this->invoiceService->createForBooking($booking);
+
+            return $booking;
         });
 
         // receive DTO and start transaction
         // check if Space exists
         // AvailabilityService + PriceCalculator
         // model create()
+        // InvoiceService (on failure -> rollback)
         // commit
         // return Booking
     }

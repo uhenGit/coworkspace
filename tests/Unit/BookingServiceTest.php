@@ -10,6 +10,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Data\ReserveBookingData;
 use App\Services\Booking\BookingService;
+use App\Services\Invoice\InvoiceService;
 use Database\Seeders\CategorySeeder;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,5 +106,52 @@ class BookingServiceTest extends TestCase
             'status' => BookingStatus::Pending,
             'total_price' => $booking->total_price,
         ]);
+    }
+
+    public function test_booking_rollback_when_invoice_service_throws_exception(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $user = User::factory()->create();
+        $start = Carbon::parse('10:00');
+        $end = Carbon::parse('12:00');
+        $data = new ReserveBookingData(
+            start_time: $start,
+            end_time: $end,
+            space_id: $space->id,
+            notes: 'rollback test',
+        );
+
+        // Booking created inside the transaction will be captured here
+        $capturedBooking = null;
+
+        $this->mock(InvoiceService::class)
+            ->shouldReceive('createForBooking')
+            ->once()
+            ->andReturnUsing(function (Booking $booking) use (&$capturedBooking) {
+                $capturedBooking = $booking;
+
+                throw new \RuntimeException('Invoice creation failed.');
+            });
+
+        $service = app(BookingService::class);
+
+        // Act
+        try {
+            $service->reserve($user, $data);
+            $this->fail('RuntimeException was not thrown.');
+        } catch (\RuntimeException $exception) {
+            // Expected exception, transaction must be rolled back
+        }
+
+        // Assert
+        $this->assertNotNull($capturedBooking, 'InvoiceService did not receive the created booking.');
+        // The booking created inside the transaction must not be persisted after rollback
+        $this->assertDatabaseMissing('bookings', [
+            'id' => $capturedBooking->id,
+        ]);
+        $this->assertDatabaseCount('bookings', 0);
     }
 }
