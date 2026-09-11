@@ -12,7 +12,7 @@ class InvoiceService
      * TODO: implement real invoice creation (payment/billing integration).
      * In tests this service is mocked.
      */
-    public function createForBooking(Booking $booking): void
+    public function create(Booking $booking): void
     {
         // Not implemented yet.
     }

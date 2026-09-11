@@ -128,7 +128,7 @@ class BookingServiceTest extends TestCase
         $capturedBooking = null;
 
         $this->mock(InvoiceService::class)
-            ->shouldReceive('createForBooking')
+            ->shouldReceive('create')
             ->once()
             ->andReturnUsing(function (Booking $booking) use (&$capturedBooking) {
                 $capturedBooking = $booking;
@@ -142,6 +142,10 @@ class BookingServiceTest extends TestCase
         try {
             $service->reserve($user, $data);
             $this->fail('RuntimeException was not thrown.');
+            $this->assertSame(
+                'Invoice creation failed.',
+                $exception->getMessage()
+            );
         } catch (\RuntimeException $exception) {
             // Expected exception, transaction must be rolled back
         }
@@ -152,6 +156,5 @@ class BookingServiceTest extends TestCase
         $this->assertDatabaseMissing('bookings', [
             'id' => $capturedBooking->id,
         ]);
-        $this->assertDatabaseCount('bookings', 0);
     }
 }

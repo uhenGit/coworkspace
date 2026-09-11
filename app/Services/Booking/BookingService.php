@@ -42,7 +42,7 @@ readonly class BookingService
             ]);
 
             // If invoice creation fails, the whole transaction is rolled back
-            $this->invoiceService->createForBooking($booking);
+            $this->invoiceService->create($booking);
 
             return $booking;
         });
