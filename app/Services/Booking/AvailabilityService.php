@@ -2,12 +2,12 @@
 
 namespace App\Services\Booking;
 
+use App\Data\BookingSlotGenerator;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Space;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
 
 readonly class AvailabilityService
 {
@@ -27,8 +27,10 @@ readonly class AvailabilityService
         return ! $hasConflict;
     }
 
-    // public function getAvailableSlots(): Collection
-    // {
+    public function getAvailableSlots(Space $space, Carbon $day): array
+    {
+        $generator = new BookingSlotGenerator;
 
-    // }
+        return $generator->generate($day);
+    }
 }

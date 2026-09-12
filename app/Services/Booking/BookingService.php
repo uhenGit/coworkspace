@@ -4,10 +4,10 @@ namespace App\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
+use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Space;
 use App\Models\User;
-use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Services\Invoice\InvoiceService;
 use Illuminate\Support\Facades\DB;
 

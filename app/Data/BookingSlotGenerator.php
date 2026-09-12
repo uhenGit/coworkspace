@@ -4,18 +4,18 @@ namespace App\Data;
 
 use Carbon\Carbon;
 
-class BookingSlotGenerator
+readonly class BookingSlotGenerator
 {
     /**
-     * Генерирует слоты для бронирования на указанную дату.
+     * Generate slots for Bookings using the date passed in.
      *
-     * @param string $date Дата в формате 'YYYY-MM-DD'
+     * @param Carbon $day  'YYYY-MM-DD'
      * @return array<int, array{start: Carbon, end: Carbon}>
      */
-    public function generate(string $date): array
+    public function generate(Carbon $day): array
     {
-        $start = Carbon::parse($date)->setTime(8, 0);
-        $end = Carbon::parse($date)->setTime(21, 0);
+        $start = Carbon::parse($day)->setTime(8, 0);
+        $end = Carbon::parse($day)->setTime(21, 0);
 
         $slots = [];
 

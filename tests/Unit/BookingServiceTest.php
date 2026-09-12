@@ -2,17 +2,17 @@
 
 namespace Tests\Unit;
 
+use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
 use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Space;
 use App\Models\User;
-use App\Data\ReserveBookingData;
 use App\Services\Booking\BookingService;
 use App\Services\Invoice\InvoiceService;
-use Database\Seeders\CategorySeeder;
 use Carbon\Carbon;
+use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Space;
 use App\Services\Booking\AvailabilityService;
+use App\Data\BookingSlotGenerator;
 use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -218,5 +219,23 @@ class AvailabilityServiceTest extends TestCase
 
         // Assert
         $this->assertTrue($isAvailable);
+    }
+
+    public function test_booking_slot_generator_returns_list_of_slots(): void
+    {
+        // Arrange
+        $day = Carbon::parse('2026-01-09');
+        $generator = app(BookingSlotGenerator::class);
+
+        // Act
+        $slots = $generator->generate($day);
+
+        // Assert
+        $this->assertCount(13, $slots);
+        $this->assertSame('08:00', $slots[0]['start']->format('H:i'));
+        $this->assertSame('09:00', $slots[0]['end']->format('H:i'));
+
+        $this->assertSame('20:00', $slots[12]['start']->format('H:i'));
+        $this->assertSame('21:00', $slots[12]['end']->format('H:i'));
     }
 }
