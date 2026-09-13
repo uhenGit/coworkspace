@@ -238,4 +238,27 @@ class AvailabilityServiceTest extends TestCase
         $this->assertSame('20:00', $slots[12]['start']->format('H:i'));
         $this->assertSame('21:00', $slots[12]['end']->format('H:i'));
     }
+
+    public function test_all_the_slots_are_available_if_there_are_no_bookings(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+
+        $day = Carbon::parse('2026-09-01');
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $slots = $service->getAvailableSlots($space, $day);
+
+        // Assert
+        $this->assertCount(13, $slots);
+        $this->assertSame('08:00', $slots[0]['start']->format('H:i'));
+        $this->assertSame('09:00', $slots[0]['end']->format('H:i'));
+
+        $this->assertSame('20:00', $slots[12]['start']->format('H:i'));
+        $this->assertSame('21:00', $slots[12]['end']->format('H:i'));
+    }
 }
