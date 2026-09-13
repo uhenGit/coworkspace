@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Illuminate\Support\Facades\Log;
 
 class AvailabilityServiceTest extends TestCase
 {
@@ -260,5 +261,31 @@ class AvailabilityServiceTest extends TestCase
 
         $this->assertSame('20:00', $slots[12]['start']->format('H:i'));
         $this->assertSame('21:00', $slots[12]['end']->format('H:i'));
+    }
+
+    public function test_some_spaces_are_not_available_when_bookings_exist(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+
+        $day = Carbon::parse('2026-09-01');
+        $start = Carbon::parse('2026-09-01 10:00');
+        $end = Carbon::parse('2026-09-01 14:00');
+        $booking = Booking::factory()->create([
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Confirmed,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $slots = $service->getAvailableSlots($space, $day);
+
+        // Assert
+        $this->assertCount(9, $slots);
     }
 }

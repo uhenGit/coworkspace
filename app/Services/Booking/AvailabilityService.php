@@ -30,7 +30,31 @@ readonly class AvailabilityService
     public function getAvailableSlots(Space $space, Carbon $day): array
     {
         $generator = new BookingSlotGenerator;
+        $slots = $generator->generate($day);
 
-        return $generator->generate($day);
+        $start = Carbon::parse($day)->setTime(8, 0);
+        $end = Carbon::parse($day)->setTime(21, 0);
+
+        $bookings = Booking::where('space_id', $space->id)
+            ->where('start_time', '<', $end)
+            ->where('end_time', '>', $start)
+            ->whereIn('status', BookingStatus::blockingStatuses())
+            ->get();
+
+        if ($bookings->isEmpty()) {
+            return $slots;
+        }
+
+        $availableSlots = array_filter($slots, function ($slot) use ($bookings) {
+            foreach ($bookings as $booking) {
+                if ($slot['start'] < $booking->end_time && $slot['end'] > $booking->start_time) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        return array_values($availableSlots);
     }
 }
