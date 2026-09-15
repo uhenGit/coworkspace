@@ -288,4 +288,73 @@ class AvailabilityServiceTest extends TestCase
         // Assert
         $this->assertCount(9, $slots);
     }
+
+    public function test_slots_ending_at_booking_start_and_starting_at_booking_end_are_available(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+
+        $day = Carbon::parse('2026-09-01');
+        $start = Carbon::parse('2026-09-01 10:00');
+        $end = Carbon::parse('2026-09-01 12:00');
+        $booking = Booking::factory()->create([
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Confirmed,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $slots = $service->getAvailableSlots($space, $day);
+        $lastSlotBeforeBooking = array_find($slots, function ($slot) use ($start) {
+            return $slot['end']->eq($start);
+        });
+        $firstSlotAfterBooking = array_find($slots, function ($slot) use ($end) {
+            return $slot['start']->eq($end);
+        });
+        $occupiedSlots = array_filter($slots, function ($slot) use ($start, $end) {
+          return $slot['start']->gte($start)
+              && $slot['end']->lte($end);
+        });
+
+        // Assert
+        $this->assertNotNull($lastSlotBeforeBooking);
+        $this->assertNotNull($firstSlotAfterBooking);
+        $this->assertEmpty($occupiedSlots);
+    }
+
+    public function test_cancelled_booking_status_not_blocking_slots(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+
+        $day = Carbon::parse('2026-09-01');
+        $start = Carbon::parse('2026-09-01 10:00');
+        $end = Carbon::parse('2026-09-01 12:00');
+        $booking = Booking::factory()->create([
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Cancelled,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $slots = $service->getAvailableSlots($space, $day);
+        $occupiedSlots = array_filter($slots, function ($slot) use ($start, $end) {
+          return $slot['start']->gte($start)
+              && $slot['end']->lte($end);
+        });
+
+        // Assert
+        $this->assertCount(2, $occupiedSlots);
+        $this->assertCount(13, $slots);
+    }
 }
