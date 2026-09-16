@@ -2,17 +2,16 @@
 
 namespace Tests\Unit;
 
+use App\Data\BookingSlotGenerator;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Space;
 use App\Services\Booking\AvailabilityService;
-use App\Data\BookingSlotGenerator;
 use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Log;
 
 class AvailabilityServiceTest extends TestCase
 {
@@ -245,7 +244,7 @@ class AvailabilityServiceTest extends TestCase
         // Arrange
         $this->seed(CategorySeeder::class);
 
-        $space = $this->createSpaceWithBuffer();
+        $space = $this->createSpaceWithBuffer(0);
 
         $day = Carbon::parse('2026-09-01');
 
@@ -268,7 +267,7 @@ class AvailabilityServiceTest extends TestCase
         // Arrange
         $this->seed(CategorySeeder::class);
 
-        $space = $this->createSpaceWithBuffer();
+        $space = $this->createSpaceWithBuffer(0);
 
         $day = Carbon::parse('2026-09-01');
         $start = Carbon::parse('2026-09-01 10:00');
@@ -294,7 +293,7 @@ class AvailabilityServiceTest extends TestCase
         // Arrange
         $this->seed(CategorySeeder::class);
 
-        $space = $this->createSpaceWithBuffer();
+        $space = $this->createSpaceWithBuffer(0);
 
         $day = Carbon::parse('2026-09-01');
         $start = Carbon::parse('2026-09-01 10:00');
@@ -317,8 +316,8 @@ class AvailabilityServiceTest extends TestCase
             return $slot['start']->eq($end);
         });
         $occupiedSlots = array_filter($slots, function ($slot) use ($start, $end) {
-          return $slot['start']->gte($start)
-              && $slot['end']->lte($end);
+            return $slot['start']->gte($start)
+                && $slot['end']->lte($end);
         });
 
         // Assert
@@ -332,7 +331,7 @@ class AvailabilityServiceTest extends TestCase
         // Arrange
         $this->seed(CategorySeeder::class);
 
-        $space = $this->createSpaceWithBuffer();
+        $space = $this->createSpaceWithBuffer(0);
 
         $day = Carbon::parse('2026-09-01');
         $start = Carbon::parse('2026-09-01 10:00');
@@ -349,12 +348,38 @@ class AvailabilityServiceTest extends TestCase
         // Act
         $slots = $service->getAvailableSlots($space, $day);
         $occupiedSlots = array_filter($slots, function ($slot) use ($start, $end) {
-          return $slot['start']->gte($start)
-              && $slot['end']->lte($end);
+            return $slot['start']->gte($start)
+                && $slot['end']->lte($end);
         });
 
         // Assert
         $this->assertCount(2, $occupiedSlots);
         $this->assertCount(13, $slots);
+    }
+
+    public function test_using_buffer_exclude_previous_slot(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer(15);
+
+        $day = Carbon::parse('2026-09-01');
+        $start = Carbon::parse('2026-09-01 10:00');
+        $end = Carbon::parse('2026-09-01 12:00');
+        $booking = Booking::factory()->create([
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Confirmed,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $slots = $service->getAvailableSlots($space, $day);
+
+        // Asssert
+        $this->assertCount(10, $slots);
     }
 }

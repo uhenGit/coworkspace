@@ -15,8 +15,7 @@ readonly class AvailabilityService
     {
         $booking_buffer_minutes = Category::where('id', $space->category_id)->value('booking_buffer_minutes');
         $corrected_start = $start->copy()->subMinutes($booking_buffer_minutes);
-        $hasConflict = Booking::with('space.category')
-            ->where([
+        $hasConflict = Booking::where([
                 ['space_id', '=', $space->id],
                 ['start_time', '<', $end],
                 ['end_time', '>', $corrected_start],
@@ -32,8 +31,8 @@ readonly class AvailabilityService
         $generator = new BookingSlotGenerator;
         $slots = $generator->generate($day);
 
-        $start = Carbon::parse($day)->setTime(8, 0);
-        $end = Carbon::parse($day)->setTime(21, 0);
+        $start = $day->copy()->setTime(8, 0);
+        $end = $day->copy()->setTime(21, 0);
 
         $bookings = Booking::where('space_id', $space->id)
             ->where('start_time', '<', $end)
@@ -45,9 +44,12 @@ readonly class AvailabilityService
             return $slots;
         }
 
-        $availableSlots = array_filter($slots, function ($slot) use ($bookings) {
+        $booking_buffer_minutes = Category::where('id', $space->category_id)->value('booking_buffer_minutes');
+        $availableSlots = array_filter($slots, function ($slot) use ($bookings, $booking_buffer_minutes) {
+            $corrected_end = $slot['end']->copy()->addMinutes($booking_buffer_minutes);
+
             foreach ($bookings as $booking) {
-                if ($slot['start'] < $booking->end_time && $slot['end'] > $booking->start_time) {
+                if ($slot['start'] < $booking->end_time && $corrected_end > $booking->start_time) {
                     return false;
                 }
             }

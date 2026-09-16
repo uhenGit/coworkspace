@@ -9,7 +9,7 @@ readonly class BookingSlotGenerator
     /**
      * Generate slots for Bookings using the date passed in.
      *
-     * @param Carbon $day  'YYYY-MM-DD'
+     * @param  Carbon  $day  'YYYY-MM-DD'
      * @return array<int, array{start: Carbon, end: Carbon}>
      */
     public function generate(Carbon $day): array
