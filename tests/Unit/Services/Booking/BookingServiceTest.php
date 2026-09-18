@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Unit\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
