@@ -95,7 +95,7 @@ class BookingPriceCalculatorTest extends TestCase
         $calculator->calculate($space, $start, $end);
     }
 
-    public function test_price_calculator_calculate_price_when_start_is_exact_at_the_day_start(): void
+    public function test_price_calculator_calculates_price_when_start_is_exact_at_the_day_start(): void
     {
         // Arrange
         $space = new Space();
@@ -112,7 +112,7 @@ class BookingPriceCalculatorTest extends TestCase
         $this->assertEquals($expectedTotalPrice, $totalPrice);
     }
 
-    public function test_price_calculator_calculate_price_when_end_is_exact_at_the_day_end(): void
+    public function test_price_calculator_calculates_price_when_end_is_exact_at_the_day_end(): void
     {
         // Arrange
         $space = new Space();
@@ -191,5 +191,24 @@ class BookingPriceCalculatorTest extends TestCase
 
         // Act
         $calculator->calculate($space, $start, $end);
+    }
+
+    public function test_price_calculator_calculates_price_when_booking_is_on_the_next_day(): void
+    {
+        // Arrange
+        $space = new Space();
+        $space->price_per_hour = 100.00;
+        $calculator = new BookingPriceCalculator();
+        $today = Carbon::now();
+        $tomorrow = $today->addDay();
+        $start = $tomorrow->copy()->setTime(9, 0);
+        $end = $tomorrow->copy()->setTime(10, 0);
+        $expectedTotalPrice = 100.00;
+
+        // Act
+        $totalPrice = $calculator->calculate($space, $start, $end);
+
+        // Assert
+        $this->assertEquals($expectedTotalPrice, $totalPrice);
     }
 }

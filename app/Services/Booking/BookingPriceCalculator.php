@@ -12,7 +12,10 @@ readonly class BookingPriceCalculator
 {
     private function validateBookingTime(Carbon $start, Carbon $end): bool
     {
-        return $start->gte(Carbon::parse('08:00')) && $end->lte(Carbon::parse('21:00'));
+        $startTime = $start->format('H:i');
+        $endTime = $end->format('H:i');
+
+        return $startTime >= '08:00' && $endTime <= '21:00';
     }
 
     private function validateBookingDuration(Carbon $start, Carbon $end): bool
