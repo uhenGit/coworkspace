@@ -4,7 +4,4 @@ namespace App\Exceptions\Booking;
 
 use Exception;
 
-class InvalidBookingTimeException extends Exception
-{
-  
-}
+class InvalidBookingTimeException extends Exception {}

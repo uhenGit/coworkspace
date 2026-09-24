@@ -4,25 +4,34 @@ namespace Tests\Unit\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
-use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
+use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Category;
 use App\Models\Space;
 use App\Models\User;
-use App\Services\Booking\BookingService;
-use App\Services\Invoice\InvoiceService;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingPriceCalculator;
+use App\Services\Booking\BookingService;
+use App\Services\Invoice\InvoiceService;
 use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Log;
 
 class BookingServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public static function invalidConfirmationStatusesProvider(): array
+    {
+        return [
+            'confirmed booking' => [BookingStatus::Confirmed],
+            'cancelled booking' => [BookingStatus::Cancelled],
+            'completed booking' => [BookingStatus::Completed],
+        ];
+    }
 
     private function createSpaceWithBuffer(int $buffer = 15, string $category_code = 'event_space'): Space
     {
@@ -194,7 +203,8 @@ class BookingServiceTest extends TestCase
         ]);
     }
 
-    public function test_confirm_throws_exception_when_the_booking_has_wrong_status(): void
+    #[DataProvider('invalidConfirmationStatusesProvider')]
+    public function test_confirm_throws_exception_when_the_booking_has_wrong_status(BookingStatus $status): void
     {
         // Arrange
         $this->seed(CategorySeeder::class);
@@ -211,7 +221,7 @@ class BookingServiceTest extends TestCase
         );
 
         $booking = Booking::factory()->create([
-            'status' => BookingStatus::Cancelled,
+            'status' => $status,
             'space_id' => $space->id,
         ]);
 

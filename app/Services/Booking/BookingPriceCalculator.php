@@ -2,11 +2,11 @@
 
 namespace App\Services\Booking;
 
-use App\Models\Space;
-use Carbon\Carbon;
-use App\Exceptions\Booking\InvalidBookingTimeException;
 use App\Exceptions\Booking\InvalidBookingDurationException;
 use App\Exceptions\Booking\InvalidBookingPriceException;
+use App\Exceptions\Booking\InvalidBookingTimeException;
+use App\Models\Space;
+use Carbon\Carbon;
 
 readonly class BookingPriceCalculator
 {
@@ -31,15 +31,15 @@ readonly class BookingPriceCalculator
     public function calculate(Space $space, Carbon $start, Carbon $end): float
     {
         if (! $this->validateBookingTime($start, $end)) {
-            throw new InvalidBookingTimeException();
+            throw new InvalidBookingTimeException;
         }
 
         if (! $this->validateBookingDuration($start, $end)) {
-            throw new InvalidBookingDurationException();
+            throw new InvalidBookingDurationException;
         }
 
         if (! $this->validateBookingPrice($space->price_per_hour)) {
-            throw new InvalidBookingPriceException();
+            throw new InvalidBookingPriceException;
         }
 
         return $start->floatDiffInHours($end) * (float) $space->price_per_hour;

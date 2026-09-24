@@ -4,8 +4,8 @@ namespace App\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
-use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
+use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Space;
 use App\Models\User;
@@ -60,7 +60,7 @@ readonly class BookingService
     public function confirm(Booking $booking): Booking
     {
         if ($booking->status !== BookingStatus::Pending) {
-            throw new BookingConfirmationInvalidStatusException();
+            throw new BookingConfirmationInvalidStatusException;
         }
 
         $booking->status = BookingStatus::Confirmed;

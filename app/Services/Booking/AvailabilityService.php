@@ -16,10 +16,10 @@ readonly class AvailabilityService
         $booking_buffer_minutes = Category::where('id', $space->category_id)->value('booking_buffer_minutes');
         $corrected_start = $start->copy()->subMinutes($booking_buffer_minutes);
         $hasConflict = Booking::where([
-                ['space_id', '=', $space->id],
-                ['start_time', '<', $end],
-                ['end_time', '>', $corrected_start],
-            ])
+            ['space_id', '=', $space->id],
+            ['start_time', '<', $end],
+            ['end_time', '>', $corrected_start],
+        ])
             ->whereIn('status', BookingStatus::blockingStatuses())
             ->exists();
 
