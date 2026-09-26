@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
+use App\Exceptions\Booking\BookingCancellationInvalidStatusException;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
 use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
@@ -28,6 +29,14 @@ class BookingServiceTest extends TestCase
     {
         return [
             'confirmed booking' => [BookingStatus::Confirmed],
+            'cancelled booking' => [BookingStatus::Cancelled],
+            'completed booking' => [BookingStatus::Completed],
+        ];
+    }
+
+    public static function invalidCancellationStatusesProvider(): array
+    {
+        return [
             'cancelled booking' => [BookingStatus::Cancelled],
             'completed booking' => [BookingStatus::Completed],
         ];
@@ -230,5 +239,98 @@ class BookingServiceTest extends TestCase
 
         // Act
         $service->confirm($booking);
+    }
+
+    public function test_cancel_changes_pending_booking_status_to_cancelled(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $availabilityService = $this->createMock(AvailabilityService::class);
+        $priceCalculator = $this->createMock(BookingPriceCalculator::class);
+        $invoiceService = $this->createMock(InvoiceService::class);
+
+        $service = new BookingService(
+            $availabilityService,
+            $priceCalculator,
+            $invoiceService,
+        );
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+            'space_id' => $space->id,
+        ]);
+
+        // Act
+        $service->cancel($booking);
+
+        // Assert
+        $this->assertSame(BookingStatus::Cancelled, $booking->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::Cancelled,
+        ]);
+    }
+
+    public function test_cancel_changes_confirmed_booking_status_to_cancelled(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $availabilityService = $this->createMock(AvailabilityService::class);
+        $priceCalculator = $this->createMock(BookingPriceCalculator::class);
+        $invoiceService = $this->createMock(InvoiceService::class);
+
+        $service = new BookingService(
+            $availabilityService,
+            $priceCalculator,
+            $invoiceService,
+        );
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'space_id' => $space->id,
+        ]);
+
+        // Act
+        $service->cancel($booking);
+
+        // Assert
+        $this->assertSame(BookingStatus::Cancelled, $booking->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::Cancelled,
+        ]);
+    }
+
+    #[DataProvider('invalidCancellationStatusesProvider')]
+    public function test_cancel_throws_exception_when_the_booking_has_wrong_status(BookingStatus $status): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $availabilityService = $this->createMock(AvailabilityService::class);
+        $priceCalculator = $this->createMock(BookingPriceCalculator::class);
+        $invoiceService = $this->createMock(InvoiceService::class);
+
+        $service = new BookingService(
+            $availabilityService,
+            $priceCalculator,
+            $invoiceService,
+        );
+
+        $booking = Booking::factory()->create([
+            'status' => $status,
+            'space_id' => $space->id,
+        ]);
+
+        // Assert
+        $this->expectException(BookingCancellationInvalidStatusException::class);
+
+        // Act
+        $service->cancel($booking);
     }
 }

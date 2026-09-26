@@ -5,6 +5,7 @@ namespace App\Services\Booking;
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
+use App\Exceptions\Booking\BookingCancellationInvalidStatusException;
 use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Space;
@@ -69,7 +70,19 @@ readonly class BookingService
         return $booking;
     }
 
-    public function cancel() {}
+    public function cancel($booking) {
+        if (
+            $booking->status !== BookingStatus::Pending
+            && $booking->status !== BookingStatus::Confirmed
+        ) {
+            throw new BookingCancellationInvalidStatusException;
+        }
+
+        $booking->status = BookingStatus::Cancelled;
+        $booking->save();
+
+        return $booking;
+    }
 
     public function changeTime() {}
 
