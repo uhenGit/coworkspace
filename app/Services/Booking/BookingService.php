@@ -6,11 +6,13 @@ use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
 use App\Exceptions\Booking\BookingCancellationInvalidStatusException;
+use App\Exceptions\Booking\BookingTimeChangeInvalidStatusException;
 use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\Invoice\InvoiceService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 readonly class BookingService
@@ -70,7 +72,7 @@ readonly class BookingService
         return $booking;
     }
 
-    public function cancel($booking) {
+    public function cancel(Booking $booking): Booking {
         if (
             $booking->status !== BookingStatus::Pending
             && $booking->status !== BookingStatus::Confirmed
@@ -84,7 +86,29 @@ readonly class BookingService
         return $booking;
     }
 
-    public function changeTime() {}
+    public function changeTime(Booking $booking, Carbon $start, Carbon $end): Booking {
+        if (
+            $booking->status !== BookingStatus::Pending
+            && $booking->status !== BookingStatus::Confirmed
+        ) {
+            throw new BookingTimeChangeInvalidStatusException;
+        }
+
+        $space = $booking->space;
+        $is_available = $this->availabilityService->isAvailable($space, $start, $end, $booking->id);
+
+        if (! $is_available) {
+            throw new BookingTimeConflictException('The selected time already booked.');
+        }
+
+        $total_price = $this->priceCalculator->calculate($space, $start, $end);
+        $booking->total_price = $total_price;
+        $booking->start_time = $start;
+        $booking->end_time = $end;
+        $booking->save();
+
+        return $booking;
+    }
 
     public function extend() {}
 }

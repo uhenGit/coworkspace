@@ -6,6 +6,7 @@ use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
 use App\Exceptions\Booking\BookingCancellationInvalidStatusException;
 use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
+use App\Exceptions\Booking\BookingTimeChangeInvalidStatusException;
 use App\Exceptions\Booking\BookingTimeConflictException;
 use App\Models\Booking;
 use App\Models\Category;
@@ -35,6 +36,22 @@ class BookingServiceTest extends TestCase
     }
 
     public static function invalidCancellationStatusesProvider(): array
+    {
+        return [
+            'cancelled booking' => [BookingStatus::Cancelled],
+            'completed booking' => [BookingStatus::Completed],
+        ];
+    }
+
+    public static function validTimeChangeStatusesProvider(): array
+    {
+        return [
+            'pending booking' => [BookingStatus::Pending],
+            'confirmed booking' => [BookingStatus::Confirmed],
+        ];
+    }
+
+    public static function invalidTimeChangeStatusesProvider(): array
     {
         return [
             'cancelled booking' => [BookingStatus::Cancelled],
@@ -332,5 +349,136 @@ class BookingServiceTest extends TestCase
 
         // Act
         $service->cancel($booking);
+    }
+
+    #[DataProvider('validTimeChangeStatusesProvider')]
+    public function test_change_time_updates_booking_for_pending_and_confirmed_statuses(BookingStatus $status): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $booking = Booking::factory()->create([
+            'status' => $status,
+            'space_id' => $space->id,
+            'start_time' => Carbon::parse('2026-07-01 08:00'),
+            'end_time' => Carbon::parse('2026-07-01 09:00'),
+            'total_price' => 100,
+        ]);
+        $newStart = Carbon::parse('2026-07-01 10:00');
+        $newEnd = Carbon::parse('2026-07-01 12:00');
+
+        $availabilityService = $this->createMock(AvailabilityService::class);
+        $availabilityService
+            ->expects($this->once())
+            ->method('isAvailable')
+            ->with(
+                $this->callback(
+                    fn (Space $actualSpace) => $actualSpace->id === $space->id
+                ),
+                $newStart,
+                $newEnd,
+                $booking->id,
+            )
+            ->willReturn(true);
+
+        $priceCalculator = $this->createMock(BookingPriceCalculator::class);
+        $priceCalculator
+            ->expects($this->once())
+            ->method('calculate')
+            ->with(
+                $this->callback(
+                    fn (Space $actualSpace) => $actualSpace->id === $space->id
+                ),
+                $newStart,
+                $newEnd,
+            )
+            ->willReturn(275.50);
+
+        $service = new BookingService(
+            $availabilityService,
+            $priceCalculator,
+            $this->createMock(InvoiceService::class),
+        );
+
+        // Act
+        $service->changeTime($booking, $newStart, $newEnd);
+
+        $booking->refresh();
+
+        // Assert
+        $this->assertEquals($newStart, $booking->start_time);
+        $this->assertEquals($newEnd, $booking->end_time);
+        $this->assertEquals(275.50, (float) $booking->total_price);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'start_time' => $newStart,
+            'end_time' => $newEnd,
+            'total_price' => 275.50,
+        ]);
+    }
+
+    #[DataProvider('invalidTimeChangeStatusesProvider')]
+    public function test_change_time_throws_exception_when_booking_has_invalid_status(BookingStatus $status): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $service = new BookingService(
+            $this->createMock(AvailabilityService::class),
+            $this->createMock(BookingPriceCalculator::class),
+            $this->createMock(InvoiceService::class),
+        );
+        $booking = Booking::factory()->create([
+            'status' => $status,
+            'space_id' => $space->id,
+        ]);
+
+        // Assert
+        $this->expectException(BookingTimeChangeInvalidStatusException::class);
+
+        // Act
+        $service->changeTime(
+            $booking,
+            Carbon::parse('2026-07-01 10:00'),
+            Carbon::parse('2026-07-01 12:00'),
+        );
+    }
+
+    public function test_change_time_throws_exception_when_new_time_conflicts_with_another_booking(): void
+    {
+        // Arrabge
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+            'space_id' => $space->id,
+            'start_time' => Carbon::parse('2026-07-01 08:00'),
+            'end_time' => Carbon::parse('2026-07-01 09:00'),
+        ]);
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'space_id' => $space->id,
+            'start_time' => Carbon::parse('2026-07-01 10:00'),
+            'end_time' => Carbon::parse('2026-07-01 12:00'),
+        ]);
+
+        $service = new BookingService(
+            app(AvailabilityService::class),
+            $this->createMock(BookingPriceCalculator::class),
+            $this->createMock(InvoiceService::class),
+        );
+
+        // Assert
+        $this->expectException(BookingTimeConflictException::class);
+
+        // Act
+        $service->changeTime(
+            $booking,
+            Carbon::parse('2026-07-01 11:00'),
+            Carbon::parse('2026-07-01 13:00'),
+        );
     }
 }

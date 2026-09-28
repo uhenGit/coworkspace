@@ -382,4 +382,62 @@ class AvailabilityServiceTest extends TestCase
         // Asssert
         $this->assertCount(10, $slots);
     }
+
+    public function test_slot_is_available_to_change_time_if_the_same_booking_editing(): void
+    {
+                // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer(15, 'event_space');
+        $start = Carbon::parse('10:00');
+        $end = Carbon::parse('12:00');
+        $booking = Booking::factory()->create([
+            'start_time' => $start,
+            'end_time' => $end,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Confirmed,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $newStart = Carbon::parse('11:00');
+        $newEnd = Carbon::parse('13:00');
+        $isAvailable = $service->isAvailable($space, $newStart, $newEnd, $booking->id);
+
+        // Assert
+        $this->assertTrue($isAvailable);
+    }
+
+    public function test_slot_is_not_available_to_change_time_if_another_booking_contains_the_same_time(): void
+    {
+                // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer(15, 'event_space');
+        $startOne = Carbon::parse('10:00');
+        $startTwo = Carbon::parse('13:00');
+        $endOne = Carbon::parse('12:00');
+        $endTwo = Carbon::parse('14:00');
+        $bookingOne = Booking::factory()->create([
+            'start_time' => $startOne,
+            'end_time' => $endOne,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Confirmed,
+        ]);
+        $bookingTwo = Booking::factory()->create([
+            'start_time' => $startTwo,
+            'end_time' => $endTwo,
+            'space_id' => $space->id,
+            'status' => BookingStatus::Pending,
+        ]);
+
+        $service = app(AvailabilityService::class);
+
+        // Act
+        $isAvailable = $service->isAvailable($space, $startTwo, $endTwo, $bookingOne->id);
+
+        // Assert
+        $this->assertFalse($isAvailable);
+    }
 }
