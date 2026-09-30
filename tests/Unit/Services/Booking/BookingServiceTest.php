@@ -668,4 +668,44 @@ class BookingServiceTest extends TestCase
         // Act
         $service->extend($booking, Carbon::parse('2026-07-01 11:00'));
     }
+
+    public function test_extend_throws_exception_when_new_end_time_is_outside_working_hours(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+            'space_id' => $space->id,
+            'start_time' => Carbon::parse('2026-07-01 18:00'),
+            'end_time' => Carbon::parse('2026-07-01 20:00'),
+        ]);
+        $newEnd = Carbon::parse('2026-07-01 22:00');
+        $availabilityService = $this->createMock(AvailabilityService::class);
+        $availabilityService
+            ->expects($this->once())
+            ->method('isAvailable')
+            ->with(
+                $this->callback(
+                    fn ($actualSpace) => $actualSpace->id === $space->id
+                ),
+                $booking->start_time,
+                $newEnd,
+                $booking->id,
+            )
+            ->willReturn(true);
+
+        $service = new BookingService(
+            $availabilityService,
+            app(BookingPriceCalculator::class),
+            $this->createMock(InvoiceService::class),
+        );
+
+        // Assert
+        $this->expectException(InvalidBookingTimeException::class);
+
+        // Act
+        $service->extend($booking, $newEnd);
+    }
 }
