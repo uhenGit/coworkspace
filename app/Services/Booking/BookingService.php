@@ -52,14 +52,6 @@ readonly class BookingService
 
             return $booking;
         });
-
-        // receive DTO and start transaction
-        // check if Space exists
-        // AvailabilityService + PriceCalculator
-        // model create()
-        // InvoiceService (on failure -> rollback)
-        // commit
-        // return Booking
     }
 
     public function confirm(Booking $booking): Booking

@@ -213,12 +213,11 @@ class BookingServiceTest extends TestCase
         try {
             $service->reserve($user, $data);
             $this->fail('RuntimeException was not thrown.');
+        } catch (\RuntimeException $exception) {
             $this->assertSame(
                 'Invoice creation failed.',
                 $exception->getMessage()
             );
-        } catch (\RuntimeException $exception) {
-            // Expected exception, transaction must be rolled back
         }
 
         // Assert
@@ -227,6 +226,30 @@ class BookingServiceTest extends TestCase
         $this->assertDatabaseMissing('bookings', [
             'id' => $capturedBooking->id,
         ]);
+    }
+
+    public function test_reserve_throws_exception_when_booking_end_time_is_outside_working_hours(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $space = $this->createSpaceWithBuffer();
+        $user = User::factory()->create();
+        $start = Carbon::parse('20:00');
+        $end = Carbon::parse('22:00');
+        $data = new ReserveBookingData(
+            start_time: $start,
+            end_time: $end,
+            space_id: $space->id,
+            notes: 'end time out of range test',
+        );
+        $service = app(BookingService::class);
+
+        // Assert
+        $this->expectException(InvalidBookingTimeException::class);
+
+        // Act
+        $service->reserve($user, $data);
     }
 
     public function test_confirm_changes_pending_booking_status_to_confirmed(): void
