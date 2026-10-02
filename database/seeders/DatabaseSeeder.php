@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             UserSeeder::class,
             SpaceSeeder::class,
+            BookingSeeder::class,
         ]);
     }
 }
