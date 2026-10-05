@@ -4,12 +4,12 @@ namespace App\Services\Booking;
 
 use App\Data\ReserveBookingData;
 use App\Enums\BookingStatus;
-use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
 use App\Exceptions\Booking\BookingCancellationInvalidStatusException;
-use App\Exceptions\Booking\BookingTimeChangeInvalidStatusException;
+use App\Exceptions\Booking\BookingConfirmationInvalidStatusException;
 use App\Exceptions\Booking\BookingExtensionInvalidStatusException;
-use App\Exceptions\Booking\InvalidBookingExtensionException;
+use App\Exceptions\Booking\BookingTimeChangeInvalidStatusException;
 use App\Exceptions\Booking\BookingTimeConflictException;
+use App\Exceptions\Booking\InvalidBookingExtensionException;
 use App\Models\Booking;
 use App\Models\Space;
 use App\Models\User;
@@ -66,7 +66,8 @@ readonly class BookingService
         return $booking;
     }
 
-    public function cancel(Booking $booking): Booking {
+    public function cancel(Booking $booking): Booking
+    {
         if (
             $booking->status !== BookingStatus::Pending
             && $booking->status !== BookingStatus::Confirmed
@@ -80,7 +81,8 @@ readonly class BookingService
         return $booking;
     }
 
-    public function changeTime(Booking $booking, Carbon $start, Carbon $end): Booking {
+    public function changeTime(Booking $booking, Carbon $start, Carbon $end): Booking
+    {
         if (
             $booking->status !== BookingStatus::Pending
             && $booking->status !== BookingStatus::Confirmed
@@ -104,7 +106,8 @@ readonly class BookingService
         return $booking;
     }
 
-    public function extend(Booking $booking, Carbon $newEnd): Booking {
+    public function extend(Booking $booking, Carbon $newEnd): Booking
+    {
         if (
             $booking->status !== BookingStatus::Pending
             && $booking->status !== BookingStatus::Confirmed

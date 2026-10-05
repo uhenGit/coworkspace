@@ -16,8 +16,7 @@ readonly class AvailabilityService
         Carbon $start,
         Carbon $end,
         ?int $excludeBookingId = null,
-    ): bool
-    {
+    ): bool {
         $booking_buffer_minutes = Category::where('id', $space->category_id)->value('booking_buffer_minutes');
         $corrected_start = $start->copy()->subMinutes($booking_buffer_minutes);
         $query = Booking::where([

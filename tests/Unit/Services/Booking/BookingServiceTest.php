@@ -24,7 +24,6 @@ use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Log;
 
 class BookingServiceTest extends TestCase
 {

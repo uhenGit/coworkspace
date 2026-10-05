@@ -16,4 +16,10 @@ class InvoiceService
     {
         // Not implemented yet.
     }
+
+    public function cancel(): void {}
+
+    public function pay(): void {}
+
+    public function refund(): void {}
 }

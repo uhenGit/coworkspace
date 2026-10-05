@@ -385,7 +385,7 @@ class AvailabilityServiceTest extends TestCase
 
     public function test_slot_is_available_to_change_time_if_the_same_booking_editing(): void
     {
-                // Arrange
+        // Arrange
         $this->seed(CategorySeeder::class);
 
         $space = $this->createSpaceWithBuffer(15, 'event_space');
@@ -411,7 +411,7 @@ class AvailabilityServiceTest extends TestCase
 
     public function test_slot_is_not_available_to_change_time_if_another_booking_contains_the_same_time(): void
     {
-                // Arrange
+        // Arrange
         $this->seed(CategorySeeder::class);
 
         $space = $this->createSpaceWithBuffer(15, 'event_space');
