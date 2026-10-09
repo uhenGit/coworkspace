@@ -21,9 +21,19 @@ class Invoice extends Model
         return [
             'amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'discount' => 'integer',
             'status' => InvoiceStatus::class,
             'paid_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
     }
+
+    protected $fillable = [
+        'booking_id',
+        'discount',
+        'amount',
+        'status',
+        'expires_at',
+        'total',
+    ];
 }
