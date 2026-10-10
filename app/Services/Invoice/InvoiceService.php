@@ -2,30 +2,43 @@
 
 namespace App\Services\Invoice;
 
-use App\Models\Booking;
-use App\Models\Invoice;
-use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
-use App\Exceptions\Invoice\NotAllowedInvoiceStatusException;
-use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
-use App\Exceptions\Booking\NotAllowedBookingStatusException;
 use App\Enums\BookingStatus;
 use App\Enums\InvoiceStatus;
+use App\Exceptions\Booking\NotAllowedBookingStatusException;
+use App\Exceptions\Invoice\InvoiceAmountInvalidException;
+use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
+use App\Exceptions\Invoice\NotAllowedInvoiceStatusException;
+use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
+use App\Models\Booking;
+use App\Models\Invoice;
 use Carbon\Carbon;
 
 class InvoiceService
 {
-    /**
-     * Create an invoice for the given booking.
-     *
-     * TODO: implement real invoice creation (payment/billing integration).
-     * In tests this service is mocked.
-     */
-    public function create(Booking $booking, string $amount, int $discount = 0): Invoice {
+    private static function validateAmount(string $amount): bool
+    {
+        if (! preg_match('/^\d{1,6}(\.\d{1,2})?$/', $amount)) {
+            return false;
+        }
+
+        if (bccomp($amount, '0.00', 2) <= 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function create(Booking $booking, string $amount, int $discount = 0): Invoice
+    {
+        if (! self::validateAmount($amount)) {
+            throw new InvoiceAmountInvalidException;
+        }
+
         if ($discount > 50 || $discount < 0) {
             throw new InvoiceDiscountInvalidException;
         }
 
-        if (!in_array($booking->status->value, BookingStatus::blockingStatuses(), true)) {
+        if (! in_array($booking->status->value, BookingStatus::blockingStatuses(), true)) {
             throw new NotAllowedBookingStatusException;
         }
 
@@ -38,9 +51,10 @@ class InvoiceService
             throw new PendingInvoiceAlreadyExistsException;
         }
 
-        $discountFactor = bcdiv((string)$discount, '100', 4); // e.g., "15" -> "0.1500"
+        $discountFactor = bcdiv((string) $discount, '100', 4); // e.g., "15" -> "0.1500"
         $multiplier = bcsub('1', $discountFactor, 4); // e.g., "1 - 0.1500" -> "0.8500"
-        $total = bcmul($amount, $multiplier, 2); // e.g., "100.50" * "0.8500" -> "85.42"
+        $rawTotal = bcmul($amount, $multiplier, 4);
+        $total = number_format((float) $rawTotal, 2, '.', '');
         $expiresAt = now()->addMinutes(15);
         $invoice = Invoice::create([
             'booking_id' => $booking->id,
@@ -54,7 +68,8 @@ class InvoiceService
         return $invoice;
     }
 
-    public function cancel(Invoice $invoice): Invoice {
+    public function cancel(Invoice $invoice): Invoice
+    {
         if ($invoice->status !== InvoiceStatus::Pending) {
             throw new NotAllowedInvoiceStatusException;
         }
@@ -66,7 +81,8 @@ class InvoiceService
         return $invoice;
     }
 
-    public function pay(Invoice $invoice): Invoice {
+    public function pay(Invoice $invoice): Invoice
+    {
         if ($invoice->status !== InvoiceStatus::Pending) {
             throw new NotAllowedInvoiceStatusException;
         }
@@ -79,7 +95,8 @@ class InvoiceService
         return $invoice;
     }
 
-    public function refund(Invoice $invoice): Invoice {
+    public function refund(Invoice $invoice): Invoice
+    {
         if ($invoice->status !== InvoiceStatus::Paid) {
             throw new NotAllowedInvoiceStatusException;
         }
