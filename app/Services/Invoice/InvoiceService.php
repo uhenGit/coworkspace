@@ -54,7 +54,7 @@ class InvoiceService
         $discountFactor = bcdiv((string) $discount, '100', 4); // e.g., "15" -> "0.1500"
         $multiplier = bcsub('1', $discountFactor, 4); // e.g., "1 - 0.1500" -> "0.8500"
         $rawTotal = bcmul($amount, $multiplier, 4);
-        $total = number_format((float) $rawTotal, 2, '.', '');
+        $total = bcadd($rawTotal, '0.005', 2);
         $expiresAt = now()->addMinutes(15);
         $invoice = Invoice::create([
             'booking_id' => $booking->id,
