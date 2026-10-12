@@ -5,7 +5,9 @@ namespace Tests\Feature\Services\Invoice;
 use App\Enums\BookingStatus;
 use App\Enums\InvoiceStatus;
 use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
+use App\Exceptions\Invoice\InvoiceAmountInvalidException;
 use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
+use App\Exceptions\Booking\NotAllowedBookingStatusException;
 use App\Models\Booking;
 use App\Models\Invoice;
 use App\Services\Invoice\InvoiceService;
@@ -23,6 +25,25 @@ class InvoiceServiceTest extends TestCase
         return [
             'negative discount' => [-1],
             'discount above maximum' => [51],
+        ];
+    }
+
+    public static function invalidAmountProvider(): array
+    {
+        return [
+            'zero amount' => ['0'],
+            'negative amount' => ['-10.00'],
+            'string amount' => ['abc'],
+            'amount has extra signs' => ['10.999'],
+            'amount above maximum' => ['1000000.00'],
+        ];
+    }
+
+    public static function notAllowedBookingStatusProvider(): array
+    {
+        return [
+            'cancelled' => [BookingStatus::Cancelled],
+            'completed' => [BookingStatus::Completed],
         ];
     }
 
@@ -62,7 +83,7 @@ class InvoiceServiceTest extends TestCase
         $service = app(InvoiceService::class);
 
         // Act
-        $invoice = $service->create($booking, '100.00', 15);
+        $invoice = $service->create($booking, '100.00', 50);
 
         // Assert
         $this->assertInstanceOf(Invoice::class, $invoice);
@@ -70,8 +91,8 @@ class InvoiceServiceTest extends TestCase
             'id' => $invoice->id,
             'booking_id' => $booking->id,
             'amount' => '100.00',
-            'discount' => 15,
-            'total' => '85.00',
+            'discount' => 50,
+            'total' => '50.00',
             'status' => InvoiceStatus::Pending->value,
         ]);
     }
@@ -110,5 +131,41 @@ class InvoiceServiceTest extends TestCase
 
         // Act
         $service->create($booking, '200.00', 0);
+    }
+
+    #[DataProvider('invalidAmountProvider')]
+    public function test_create_throws_exception_when_amount_has_invalid_value(string $amount): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Assert
+        $this->expectException(InvoiceAmountInvalidException::class);
+
+        // Act
+        $service->create($booking, $amount, 0);
+    }
+
+    #[DataProvider('notAllowedBookingStatusProvider')]
+    public function test_create_throws_exception_when_booking_has_not_allowed_status(BookingStatus $status): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $booking = Booking::factory()->create([
+            'status' => $status,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Assert
+        $this->expectException(NotAllowedBookingStatusException::class);
+
+        // Act
+        $service->create($booking, '100.00');
     }
 }
