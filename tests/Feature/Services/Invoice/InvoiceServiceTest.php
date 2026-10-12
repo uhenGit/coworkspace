@@ -4,13 +4,14 @@ namespace Tests\Feature\Services\Invoice;
 
 use App\Enums\BookingStatus;
 use App\Enums\InvoiceStatus;
-use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
-use App\Exceptions\Invoice\InvoiceAmountInvalidException;
-use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
 use App\Exceptions\Booking\NotAllowedBookingStatusException;
+use App\Exceptions\Invoice\InvoiceAmountInvalidException;
+use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
+use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
 use App\Models\Booking;
 use App\Models\Invoice;
 use App\Services\Invoice\InvoiceService;
+use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -167,5 +168,27 @@ class InvoiceServiceTest extends TestCase
 
         // Act
         $service->create($booking, '100.00');
+    }
+
+    public function test_create_sets_expires_at_fifteen_minutes_after_creation(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $now = Carbon::parse('2026-01-01 10:00:00');
+        Carbon::setTestNow($now);
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Act
+        $invoice = $service->create($booking, '100.00');
+
+        // Assert
+        $this->assertTrue($invoice->expires_at->equalTo($now->copy()->addMinutes(15)));
+
+        Carbon::setTestNow();
     }
 }
