@@ -48,6 +48,14 @@ class InvoiceServiceTest extends TestCase
         ];
     }
 
+    public static function validAmountWithDecimals(): array
+    {
+        return [
+            '10,01' => ['10.01', '8.51'],
+            '19,99' => ['19.99', '16.99'],
+        ];
+    }
+
     public function test_create_creates_invoice_without_discount(): void
     {
         // Arrange
@@ -190,5 +198,34 @@ class InvoiceServiceTest extends TestCase
         $this->assertTrue($invoice->expires_at->equalTo($now->copy()->addMinutes(15)));
 
         Carbon::setTestNow();
+    }
+
+    #[DataProvider('validAmountWithDecimals')]
+    public function test_create_creates_invoice_with_discount_and_decimal_amount(
+        string $amount,
+        string $expectedTotal
+    ): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Act
+        $invoice = $service->create($booking, $amount, 15);
+
+        // Assert
+        $this->assertInstanceOf(Invoice::class, $invoice);
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'booking_id' => $booking->id,
+            'amount' => $amount,
+            'discount' => 15,
+            'total' => $expectedTotal,
+            'status' => InvoiceStatus::Pending->value,
+        ]);
     }
 }
