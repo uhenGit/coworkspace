@@ -5,6 +5,7 @@ namespace Tests\Feature\Services\Invoice;
 use App\Enums\BookingStatus;
 use App\Enums\InvoiceStatus;
 use App\Exceptions\Booking\NotAllowedBookingStatusException;
+use App\Exceptions\Invoice\NotAllowedInvoiceStatusException;
 use App\Exceptions\Invoice\InvoiceAmountInvalidException;
 use App\Exceptions\Invoice\InvoiceDiscountInvalidException;
 use App\Exceptions\Invoice\PendingInvoiceAlreadyExistsException;
@@ -53,6 +54,16 @@ class InvoiceServiceTest extends TestCase
         return [
             '10,01' => ['10.01', '8.51'],
             '19,99' => ['19.99', '16.99'],
+        ];
+    }
+
+    public static function notAllowedInvoiceStatusProvider(): array
+    {
+        return [
+            'paid' => [InvoiceStatus::Paid],
+            'cancelled' => [InvoiceStatus::Cancelled],
+            'expired' => [InvoiceStatus::Expired],
+            'refunded' => [InvoiceStatus::Refunded],
         ];
     }
 
@@ -227,5 +238,52 @@ class InvoiceServiceTest extends TestCase
             'total' => $expectedTotal,
             'status' => InvoiceStatus::Pending->value,
         ]);
+    }
+
+    public function test_cancel_change_pending_invoice_to_cancelled(): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Act
+        $invoice = $service->create($booking, '100.00', 15);
+        $cancelledInvoice = $service->cancel($invoice);
+
+        // Assert
+        $this->assertInstanceOf(Invoice::class, $cancelledInvoice);
+        $this->assertEquals(InvoiceStatus::Cancelled, $cancelledInvoice->status);
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'booking_id' => $booking->id,
+            'amount' => '100.00',
+            'discount' => 15,
+            'total' => '85.00',
+            'status' => InvoiceStatus::Cancelled->value,
+        ]);
+    }
+
+    #[DataProvider('notAllowedInvoiceStatusProvider')]
+    public function test_cancel_throws_exception_when_invoice_has_not_allowed_status(InvoiceStatus $status): void
+    {
+        // Arrange
+        $this->seed(CategorySeeder::class);
+
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Pending,
+        ]);
+        $service = app(InvoiceService::class);
+
+        // Assert
+        $this->expectException(NotAllowedInvoiceStatusException::class);
+
+        // Act
+        $invoice = $service->create($booking, '100.00', 0);
+        $invoice->status = $status;
+        $service->cancel($invoice);
     }
 }
